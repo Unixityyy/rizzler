@@ -1,67 +1,134 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMemberRoleManager, EmbedBuilder } from 'discord.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import { botLog, LogType } from '../../utils/logger';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const settingsPath = path.join(process.cwd(), 'settings.json');
-const { devSecret, titleId, banRoleID } = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-
-export const data = new SlashCommandBuilder()
-    .setName('getuserbans')
-    .setDescription('Fetches all bans for a specific PlayFab player.')
-    .addStringOption(option => 
-        option.setName('playfabid')
-            .setDescription('The PlayFab ID of the player')
-            .setRequired(true));
-
-export async function execute(interaction: ChatInputCommandInteraction) {
-    const roles = interaction.member?.roles as GuildMemberRoleManager;
-    if (!roles.cache.has(banRoleID)) {
-        return interaction.reply({ content: 'No permission.', ephemeral: true });
+vi.mock('node:fs', () => ({
+    default: {
+        readFileSync: vi.fn().mockReturnValue(JSON.stringify({
+            devSecret: 'test_secret',
+            titleId: 'test_id',
+            banRoleID: '123456789'
+        })),
+        existsSync: vi.fn().mockReturnValue(true)
     }
+}));
 
-    const playFabId = interaction.options.getString('playfabid', true);
-    await interaction.deferReply();
+vi.mock('node:path', () => ({
+    default: {
+        join: vi.fn((...args) => args.join('/'))
+    }
+}));
 
-    try {
-        const response = await fetch(`https://${titleId}.playfabapi.com/Server/GetUserBans`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-SecretKey': devSecret
+vi.mock('../../utils/logger', () => ({
+    botLog: vi.fn(),
+    LogType: { INFO: 'INFO', ERROR: 'ERROR' }
+}));
+
+import { execute } from './getUserBans';
+
+describe('getuserbans command', () => {
+    beforeEach(() => {
+        vi.stubGlobal('fetch', vi.fn());
+        vi.clearAllMocks();
+    });
+
+    it('should reply with "No permission" if user lacks the ban role', async () => {
+        const mockInteraction: any = {
+            member: {
+                roles: { cache: { has: vi.fn().mockReturnValue(false) } }
             },
-            body: JSON.stringify({ PlayFabId: playFabId })
+            reply: vi.fn()
+        };
+
+        await execute(mockInteraction);
+
+        expect(mockInteraction.reply).toHaveBeenCalledWith(
+            expect.objectContaining({ content: 'No permission.', ephemeral: true })
+        );
+    });
+
+    it('should successfully fetch and display ban history in an embed', async () => {
+        const mockInteraction: any = {
+            member: { roles: { cache: { has: vi.fn().mockReturnValue(true) } } },
+            options: {
+                getString: vi.fn().mockReturnValue('chudmaster123')
+            },
+            deferReply: vi.fn(),
+            editReply: vi.fn()
+        };
+
+        (fetch as any).mockResolvedValue({
+            json: vi.fn().mockResolvedValue({
+                code: 200,
+                data: {
+                    BanData: [
+                        {
+                            Active: true,
+                            Reason: 'bad name',
+                            Expires: '2067-01-00T00:00:00Z',
+                            BanId: '676767'
+                        }
+                    ]
+                }
+            })
         });
 
-        const result: any = await response.json();
+        await execute(mockInteraction);
 
-        if (result.code === 200) {
-            const bans = result.data.BanData;
+        expect(mockInteraction.deferReply).toHaveBeenCalled();
+        expect(mockInteraction.editReply).toHaveBeenCalledWith(
+            expect.objectContaining({
+                embeds: expect.arrayContaining([
+                    expect.objectContaining({
+                        data: expect.objectContaining({
+                            title: 'Ban History: chudmaster123'
+                        })
+                    })
+                ])
+            })
+        );
+    });
 
-            if (bans.length === 0) {
-                return interaction.editReply(`No ban history found for \`${playFabId}\`.`);
-            }
+    it('should notify if no ban history is found', async () => {
+        const mockInteraction: any = {
+            member: { roles: { cache: { has: vi.fn().mockReturnValue(true) } } },
+            options: { getString: vi.fn().mockReturnValue('CLEAN-PLAYER-ID') },
+            deferReply: vi.fn(),
+            editReply: vi.fn()
+        };
 
-            const embed = new EmbedBuilder()
-                .setTitle(`Ban History: ${playFabId}`)
-                .setColor(0xFF0000)
-                .setTimestamp();
+        (fetch as any).mockResolvedValue({
+            json: vi.fn().mockResolvedValue({
+                code: 200,
+                data: { BanData: [] }
+            })
+        });
 
-            const banList = bans.map((ban: any) => {
-                const status = ban.Active ? '🔴 Active' : '⚪ Expired';
-                const expiry = ban.Expires ? new Date(ban.Expires).toLocaleString() : 'Permanent';
-                return `**Status:** ${status}\n**Reason:** ${ban.Reason}\n**Expires:** ${expiry}\n**ID:** \`${ban.BanId}\`\n---`;
-            }).join('\n');
+        await execute(mockInteraction);
 
-            embed.setDescription(banList.slice(0, 4096));
+        expect(mockInteraction.editReply).toHaveBeenCalledWith(
+            expect.stringContaining('No ban history found')
+        );
+    });
 
-            await interaction.editReply({ embeds: [embed] });
-        } else {
-            botLog(`PlayFab Error (${result.error}): ${result.errorMessage}`, LogType.ERROR);
-            await interaction.editReply(`PlayFab Error: ${result.errorMessage}`);
-        }
-    } catch (error: any) {
-        botLog(`Critical error: ${error.message}`, LogType.ERROR);
-        await interaction.editReply('Failed to communicate with PlayFab.');
-    }
-}
+    it('should handle PlayFab API errors', async () => {
+        const mockInteraction: any = {
+            member: { roles: { cache: { has: vi.fn().mockReturnValue(true) } } },
+            options: { getString: vi.fn().mockReturnValue('INVALID-ID') },
+            deferReply: vi.fn(),
+            editReply: vi.fn()
+        };
+
+        (fetch as any).mockResolvedValue({
+            json: vi.fn().mockResolvedValue({
+                code: 400,
+                error: 'InvalidParams',
+                errorMessage: 'The PlayFab ID is invalid'
+            })
+        });
+
+        await execute(mockInteraction);
+
+        expect(mockInteraction.editReply).toHaveBeenCalledWith(
+            expect.stringContaining('PlayFab Error: The PlayFab ID is invalid')
+        );
+    });
+});
