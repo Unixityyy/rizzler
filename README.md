@@ -6,6 +6,9 @@ this is the discord bot i made that i use in project rizz discord server
 blah blah blah made with node js blah blah discord.js
 
 ## setup
+this guide assumes you already have a bot created and know the basics of bots
+
+---
 we need to set variables in `settings.json`<br>
 navigate to `src/settings.template.json` and make a copy, call that copy `settings.json`<br>
 in that `settings.json` we have to set a few values:
