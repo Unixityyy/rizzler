@@ -20,6 +20,8 @@ jobs:
     - run: npm ci
     - name: Lint Code
       run: npm run lint
+    - name: Prepare settings from template
+      run: cp settings.template.json src/settings.json
     - name: Type Check
       run: tsc --noEmit
     - name: Build
