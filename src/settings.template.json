@@ -1,0 +1,12 @@
+{
+	"token": "bot-token-here",
+	"guildId": "server-id-here",
+	"clientId": "bot-id-here",
+	"devSecret": "playfab-dev-secret-here",
+	"banRoleID": "roleid-that-can-ban-users",
+	"titleId": "playfab-title-id-here",
+    "rolesChannel": "channel-id-for-roles",
+    "logChannelID": "channel-id-for-logs",
+    "note:": "this is a template file. fill these out and rename to settings.json before running the bot, else the bot will crash.",
+    "note2:": "you can delete these note fields"
+}

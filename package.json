@@ -1,0 +1,20 @@
+{
+  "name": "link-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && copyfiles -u 1 \"src/**/*.json\" \"src/**/*.yaml\" build && cd build && node deploy.js",
+    "start": "cd build && node index.js"
+  },
+  "keywords": [],
+  "author": "unixityyy",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "copyfiles": "^2.4.1"
+  }
+}
