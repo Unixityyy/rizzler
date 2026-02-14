@@ -7,12 +7,12 @@ const settingsPath = path.join(process.cwd(), 'settings.json');
 const { devSecret, titleId, banRoleID } = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
 
 export const data = new SlashCommandBuilder()
-        .setName('getuserbans')
-        .setDescription('Retrieves all ban history for a PlayFab player.')
-        .addStringOption(option => 
-            option.setName('playfabid')
-                .setDescription('The PlayFab ID of the player')
-                .setRequired(true))
+    .setName('getuserbans')
+    .setDescription('Fetches all bans for a specific PlayFab player.')
+    .addStringOption(option => 
+        option.setName('playfabid')
+            .setDescription('The PlayFab ID of the player')
+            .setRequired(true));
 
 export async function execute(interaction: ChatInputCommandInteraction) {
     const roles = interaction.member?.roles as GuildMemberRoleManager;
@@ -30,42 +30,38 @@ export async function execute(interaction: ChatInputCommandInteraction) {
                 'Content-Type': 'application/json',
                 'X-SecretKey': devSecret
             },
-            body: JSON.stringify({ 
-                PlayFabId: playFabId.trim()
-            })
+            body: JSON.stringify({ PlayFabId: playFabId })
         });
-        
+
         const result: any = await response.json();
-        if (result?.code === 200 && result?.data) {
-            const bans = result.data.BanData || []; 
+
+        if (result.code === 200) {
+            const bans = result.data.BanData;
 
             if (bans.length === 0) {
-                return await interaction.editReply(`No ban history found for player \`${playFabId}\`.`);
+                return interaction.editReply(`No ban history found for \`${playFabId}\`.`);
             }
 
             const embed = new EmbedBuilder()
                 .setTitle(`Ban History: ${playFabId}`)
-                .setColor(0xff0000)
+                .setColor(0xFF0000)
                 .setTimestamp();
 
-            bans.slice(0, 5).forEach((ban: any, index: number) => {
-                const status = ban.Active ? "🔴 Active" : "⚪ Inactive/Expired";
-                const expires = ban.Expires ? new Date(ban.Expires).toLocaleString() : "Permanent";
-                
-                embed.addFields({
-                    name: `Ban #${index + 1} (${status})`,
-                    value: `**Reason:** ${ban.Reason}\n**Expires:** ${expires}\n**ID:** \`${ban.BanId}\``
-                });
-            });
+            const banList = bans.map((ban: any) => {
+                const status = ban.Active ? '🔴 Active' : '⚪ Expired';
+                const expiry = ban.Expires ? new Date(ban.Expires).toLocaleString() : 'Permanent';
+                return `**Status:** ${status}\n**Reason:** ${ban.Reason}\n**Expires:** ${expiry}\n**ID:** \`${ban.BanId}\`\n---`;
+            }).join('\n');
+
+            embed.setDescription(banList.slice(0, 4096));
 
             await interaction.editReply({ embeds: [embed] });
-            botLog(`Viewed ban history for ...${playFabId.slice(-4)}`, LogType.INFO);
         } else {
-            const errorDetail = result?.errorMessage || "Player not found or API error.";
-            await interaction.editReply(`PlayFab Error: ${errorDetail}`);
+            botLog(`PlayFab Error (${result.error}): ${result.errorMessage}`, LogType.ERROR);
+            await interaction.editReply(`PlayFab Error: ${result.errorMessage}`);
         }
     } catch (error: any) {
-        botLog(`Critical error in getuserbans: ${error.message}`, LogType.ERROR);
+        botLog(`Critical error: ${error.message}`, LogType.ERROR);
         await interaction.editReply('Failed to communicate with PlayFab.');
     }
 }
