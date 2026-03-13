@@ -2,8 +2,8 @@ name: Deploy Bot
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   deploy:
