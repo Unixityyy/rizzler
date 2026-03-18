@@ -1,11 +1,16 @@
 import os from 'os';
 import { version } from 'discord.js';
 import { botLog, LogType } from '../utils/logger';
+import { PlayFabAdmin } from 'playfab-sdk';
+const { titleId, devSecret } = require('../settings.json');
 
 export const name = 'clientReady';
 export const once = true;
 
 export function execute(client: any) {
+    PlayFabAdmin.settings.titleId = titleId;
+    PlayFabAdmin.settings.developerSecretKey = devSecret;
+
     const uptime = (Date.now() - client.startupTime) / 1000;
     const commandCount = client.commands.size;
     const eventCount = client.events.size;

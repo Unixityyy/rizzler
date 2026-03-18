@@ -1,3 +1,4 @@
+// TODO: migrate this to use playfab-sdk instead of node fetch
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMemberRoleManager, EmbedBuilder } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
