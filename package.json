@@ -16,12 +16,12 @@
   "dependencies": {
     "discord.js": "^14.18.0",
     "playfab-sdk": "^2.187.251205",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "copyfiles": "^2.4.1"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
-    "copyfiles": "^2.4.1",
     "typescript-eslint": "^8.55.0",
     "vitest": "^4.0.18"
   }
