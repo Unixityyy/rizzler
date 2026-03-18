@@ -53,7 +53,7 @@ describe('link command modal handler', () => {
     });
 
     it('should successfully link and reward player when name matches', async () => {
-        (PlayFabAdmin.GetUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: { data: { Data: {}; }; }) => void) => {
+        (PlayFabAdmin.GetUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: Record<string, unknown>) => any) => {
             cb(null, { data: { Data: {} } });
         });
 
@@ -84,8 +84,8 @@ describe('link command modal handler', () => {
             });
         });
 
-        (PlayFabAdmin.UpdateUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: {}) => any) => cb(null, {}));
-        (PlayFabAdmin.AddUserVirtualCurrency as any).mockImplementation((params: any, cb: (arg0: null, arg1: {}) => any) => cb(null, {}));
+        (PlayFabAdmin.UpdateUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: Record<string, unknown>) => any) => cb(null, {}));
+        (PlayFabAdmin.AddUserVirtualCurrency as any).mockImplementation((params: any, cb: (arg0: null, arg1: Record<string, unknown>) => any) => cb(null, {}));
         (fs.existsSync as any).mockReturnValue(false);
 
         await collectCallback(mockBtnInt);
