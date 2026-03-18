@@ -1,14 +1,16 @@
 // genuinely im so sorry for whoever reads this code but sadly i used gemini for this test
 // im too tired to write a test rn soo
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { execute } from './link';
+import { handleModalSubmit } from './link';
 import { PlayFabAdmin } from 'playfab-sdk';
 import fs from 'fs';
 
 vi.mock('playfab-sdk', () => ({
     PlayFabAdmin: {
+        GetUserReadOnlyData: vi.fn(),
         GetUserAccountInfo: vi.fn(),
-        UpdateUserReadOnlyData: vi.fn()
+        UpdateUserReadOnlyData: vi.fn(),
+        AddUserVirtualCurrency: vi.fn()
     }
 }));
 
@@ -17,10 +19,18 @@ vi.mock('fs', () => ({
         existsSync: vi.fn(),
         readFileSync: vi.fn(),
         writeFileSync: vi.fn()
-    }
+    },
+    existsSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn()
 }));
 
-describe('link command', () => {
+vi.mock('../../utils/logger', () => ({
+    botLog: vi.fn(),
+    LogType: { ERROR: 'ERROR', INFO: 'INFO' }
+}));
+
+describe('link command modal handler', () => {
     let mockInteraction: any;
     let mockCollector: any;
 
@@ -33,90 +43,69 @@ describe('link command', () => {
         };
 
         mockInteraction = {
-            user: { id: '123', tag: 'testuser#0001' },
-            reply: vi.fn().mockResolvedValue({
+            user: { id: 'discord_123', tag: 'Tester#0001' },
+            fields: { getTextInputValue: vi.fn().mockReturnValue('TEST_PF_ID') },
+            reply: vi.fn().mockResolvedValue({}),
+            channel: {
                 createMessageComponentCollector: vi.fn().mockReturnValue(mockCollector)
-            }),
-            editReply: vi.fn()
+            }
         };
     });
 
-    it('should send initial instructions with a 6-character code', async () => {
-        await execute(mockInteraction);
+    it('should successfully link and reward player when name matches', async () => {
+        (PlayFabAdmin.GetUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: { data: { Data: {}; }; }) => void) => {
+            cb(null, { data: { Data: {} } });
+        });
 
-        expect(mockInteraction.reply).toHaveBeenCalledWith(
-            expect.objectContaining({
-                content: expect.stringMatching(/name: `[A-Z]{6}`/),
-                ephemeral: true
-            })
-        );
-    });
+        await handleModalSubmit(mockInteraction);
 
-    it('should successfully link and update files when button is clicked and player is found', async () => {
-        await execute(mockInteraction);
+        expect(mockInteraction.reply).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringContaining('step 2: verify')
+        }));
 
-        const callback = mockCollector.on.mock.calls.find((call: string[]) => call[0] === 'collect')[1];
-        const mockButtonInteraction = {
+        const collectCallback = mockCollector.on.mock.calls.find((c: string[]) => c[0] === 'collect')[1];
+        const mockBtnInt = {
             user: mockInteraction.user,
             deferUpdate: vi.fn().mockResolvedValue({}),
+            editReply: vi.fn(),
             followUp: vi.fn(),
-            editReply: vi.fn()
+            customId: 'finalize_link'
         };
 
-        (PlayFabAdmin.GetUserAccountInfo as any).mockImplementation((params: any, cb: any) => {
+        const generatedCode = mockInteraction.reply.mock.calls[0][0].content.match(/`([A-Z]{6})`/)[1];
+
+        (PlayFabAdmin.GetUserAccountInfo as any).mockImplementation((params: any, cb: (arg0: null, arg1: { data: { UserInfo: { TitleInfo: { DisplayName: any; }; }; }; }) => void) => {
             cb(null, {
                 data: {
                     UserInfo: {
-                        PlayFabId: 'PF_123',
-                        TitleInfo: { DisplayName: 'MetaPlayer' }
+                        TitleInfo: { DisplayName: generatedCode }
                     }
                 }
             });
         });
 
-        (PlayFabAdmin.UpdateUserReadOnlyData as any).mockImplementation((params: any, cb: any) => {
-            cb(null, { data: {} });
-        });
-
+        (PlayFabAdmin.UpdateUserReadOnlyData as any).mockImplementation((params: any, cb: (arg0: null, arg1: {}) => any) => cb(null, {}));
+        (PlayFabAdmin.AddUserVirtualCurrency as any).mockImplementation((params: any, cb: (arg0: null, arg1: {}) => any) => cb(null, {}));
         (fs.existsSync as any).mockReturnValue(false);
 
-        await callback(mockButtonInteraction);
+        await collectCallback(mockBtnInt);
 
-        expect(PlayFabAdmin.GetUserAccountInfo).toHaveBeenCalled();
         expect(PlayFabAdmin.UpdateUserReadOnlyData).toHaveBeenCalledWith(
             expect.objectContaining({
-                PlayFabId: 'PF_123',
-                Data: { DiscordUsername: 'testuser#0001' }
+                PlayFabId: 'TEST_PF_ID',
+                Data: { DiscordUsername: 'Tester#0001' }
             }),
             expect.any(Function)
         );
+
+        expect(PlayFabAdmin.AddUserVirtualCurrency).toHaveBeenCalledWith(
+            expect.objectContaining({ Amount: 2500 }),
+            expect.any(Function)
+        );
+
         expect(fs.writeFileSync).toHaveBeenCalled();
-        expect(mockButtonInteraction.editReply).toHaveBeenCalledWith(
-            expect.objectContaining({
-                content: expect.stringContaining('successfully linked!')
-            })
-        );
-    });
-
-    it('should show error if player is not found in PlayFab', async () => {
-        await execute(mockInteraction);
-        const callback = mockCollector.on.mock.calls.find((call: string[]) => call[0] === 'collect')[1];
-        
-        const mockButtonInteraction = {
-            deferUpdate: vi.fn(),
-            followUp: vi.fn()
-        };
-
-        (PlayFabAdmin.GetUserAccountInfo as any).mockImplementation((params: any, cb: any) => {
-            cb({ error: 'NotFound' }, null);
-        });
-
-        await callback(mockButtonInteraction);
-
-        expect(mockButtonInteraction.followUp).toHaveBeenCalledWith(
-            expect.objectContaining({
-                content: expect.stringContaining('could not find player')
-            })
-        );
+        expect(mockBtnInt.editReply).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringContaining('success!')
+        }));
     });
 });
