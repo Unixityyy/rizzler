@@ -11,8 +11,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         const response = await fetch('https://sheri.bot/api/bunny/?format=json');
         const data: any = await response.json();
 
-        if (data.length > 0 && data[0].url) {
-            await interaction.editReply({ content: data[0].url });
+        if (data.length > 0 && data.url) {
+            await interaction.editReply({ content: data.url });
         } else {
             await interaction.editReply('Could not fetch a bunny image at the moment.');
         }
