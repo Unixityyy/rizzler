@@ -22,6 +22,22 @@ export const data = new SlashCommandBuilder()
     .setDescription('Link your Project Rizz account to Discord');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+    if (fs.existsSync(MAPPINGS_PATH)) {
+        try {
+            const fileData = fs.readFileSync(MAPPINGS_PATH, 'utf-8');
+            const mappings = fileData ? JSON.parse(fileData) : {};
+            
+            if (mappings[interaction.user.id]) {
+                return interaction.reply({
+                    content: `you are already linked to PlayFab ID: \`${mappings[interaction.user.id].playFabId}\`.`,
+                    ephemeral: true
+                });
+            }
+        } catch (err) {
+            botLog(`Error reading mappings: ${err}`, LogType.ERROR);
+        }
+    }
+
     const startRow = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
             new ButtonBuilder()
