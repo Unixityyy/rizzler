@@ -10,7 +10,7 @@ describe('randombunny command', () => {
         const mockUrl = 'https://sheri.bot/media/bunny/abc.jpg';
         
         (fetch as any).mockResolvedValue({
-            json: vi.fn().mockResolvedValue([{ url: mockUrl }]),
+            json: vi.fn().mockResolvedValue({ url: mockUrl }),
         });
 
         const mockInteraction: any = {
@@ -24,9 +24,9 @@ describe('randombunny command', () => {
         expect(mockInteraction.editReply).toHaveBeenCalledWith({ content: mockUrl });
     });
 
-    it('should send an error message if the API response is empty', async () => {
+    it('should send an error message if the API response is missing the url', async () => {
         (fetch as any).mockResolvedValue({
-            json: vi.fn().mockResolvedValue([]),
+            json: vi.fn().mockResolvedValue({}),
         });
 
         const mockInteraction: any = {
