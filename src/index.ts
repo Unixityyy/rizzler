@@ -1,5 +1,5 @@
 'use strict';
-import { Client, Collection } from 'discord.js';
+import { ActivityType, Client, Collection } from 'discord.js';
 const { token } = require('./settings.json');
 import { loadEvents } from './handlers/eventHandler';
 import { loadCommands } from './handlers/commandHandler';
@@ -8,6 +8,9 @@ export const client = new Client({
     intents: [
         32767,
     ],
+    presence: {
+        status: 'dnd'
+    }
 }) as any;
 
 client.commands = new Collection();

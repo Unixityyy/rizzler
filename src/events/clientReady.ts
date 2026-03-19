@@ -17,13 +17,6 @@ export async function execute(client: FuckassClient) {
     PlayFabAdmin.settings.titleId = titleId;
     PlayFabAdmin.settings.developerSecretKey = devSecret;
 
-    const guild = await client.guilds.fetch(guildId);
-
-    client.user!.setPresence({
-        activities: [{ name: guild.name, type: ActivityType.Watching }],
-        status: 'dnd'
-    });
-
     const uptime = (Date.now() - client.startupTime) / 1000;
     const commandCount = client.commands.size;
     const eventCount = client.events.size;
