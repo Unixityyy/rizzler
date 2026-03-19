@@ -35,7 +35,7 @@ vi.mock('playfab-sdk', () => ({
     }
 }));
 
-import { execute } from './getuserinfo';
+import { execute } from './getUserInfo';
 
 describe('getuserinfo command', () => {
     beforeEach(() => {
