@@ -8,7 +8,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
 
     try {
-        const response = await fetch('https://sheri.bot/api/bunny/');
+        const response = await fetch('https://sheri.bot/api/bunny/?format=json');
         const data: any = await response.json();
 
         if (data.length > 0 && data[0].url) {
