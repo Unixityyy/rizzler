@@ -20,7 +20,9 @@ in that `settings.json` we have to set a few values:
 - `banRoleID`: the id of the role that can ban people ingame
 - `titleId`: ur games title id
 - `rolesChannel`: id of the channel where people get roles
-- `logChannelID`: id of the channel the bot will log in<br>
+- `logChannelID`: id of the channel the bot will log in
+- `giveawayStarters`: people who can start giveaways
+- `giveawayPingRole`: the role that gets pinged when a giveaway starts<br>
 <b>the log channel is safe to make public, as the logs will not expose private info!</b><br>
 
 ---

@@ -1,8 +1,9 @@
 import os from 'os';
-import { ActivityType, Client, Collection, version } from 'discord.js';
+import { Client, Collection, version } from 'discord.js';
 import { botLog, LogType } from '../utils/logger';
 import { PlayFabAdmin } from 'playfab-sdk';
-const { titleId, devSecret, guildId } = require('../settings.json');
+const { titleId, devSecret } = require('../settings.json');
+import { initRecovery } from '../commands/utility/giveaway';
 
 export interface FuckassClient extends Client {
     commands: Collection<string, any>;
@@ -16,6 +17,8 @@ export const once = true;
 export async function execute(client: FuckassClient) {
     PlayFabAdmin.settings.titleId = titleId;
     PlayFabAdmin.settings.developerSecretKey = devSecret;
+
+    await initRecovery(client);
 
     const uptime = (Date.now() - client.startupTime) / 1000;
     const commandCount = client.commands.size;

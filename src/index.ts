@@ -1,5 +1,5 @@
 'use strict';
-import { ActivityType, Client, Collection } from 'discord.js';
+import { Client, Collection } from 'discord.js';
 const { token } = require('./settings.json');
 import { loadEvents } from './handlers/eventHandler';
 import { loadCommands } from './handlers/commandHandler';
