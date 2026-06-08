@@ -10,16 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ec2-user/rizzler
-            git pull origin main
-            npm install --omit=dev
-            npm run build
-            cd build
-            pm2 restart rizzler || pm2 start index.js --name "rizzler"
+      - name: Deploy
+        run: |
+          curl -X POST https://api.unixityyy.dev/api/v1/webhooks/rizzler-update \
+            -H "Content-Type: application/json" \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
